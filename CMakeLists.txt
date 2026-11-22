@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 
-# macOS: Big Sur or newer (universal builds pass -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"); set before project()
-set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum macOS version")
+# macOS: Catalina 10.15 or newer (Blix409 fork; upstream targets 11.0). Universal builds pass -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"; set before project()
+set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum macOS version")
 
 project(LYNX VERSION 0.1.30 LANGUAGES C CXX)
 
@@ -485,7 +485,7 @@ if(LYNX_BUILD_APP)
         MICROPHONE_PERMISSION_TEXT "LYNX SHARE records audio from your microphone or audio interface when you arm a track and press Record."
         DOCUMENT_EXTENSIONS lynx flp mid
         HARDENED_RUNTIME_ENABLED FALSE
-        PLIST_TO_MERGE "<plist><dict><key>CFBundleName</key><string>LYNX SHARE</string><key>CFBundleDisplayName</key><string>LYNX SHARE</string><key>LSMinimumSystemVersion</key><string>11.0</string><key>NSHighResolutionCapable</key><true/></dict></plist>")
+        PLIST_TO_MERGE "<plist><dict><key>CFBundleName</key><string>LYNX SHARE</string><key>CFBundleDisplayName</key><string>LYNX SHARE</string><key>LSMinimumSystemVersion</key><string>${CMAKE_OSX_DEPLOYMENT_TARGET}</string><key>NSHighResolutionCapable</key><true/></dict></plist>")
 
     # (a list: the plugin build, cmake/LynxPlugins.cmake, compiles the same sources without Main.cpp)
     set(LYNX_APP_SOURCES

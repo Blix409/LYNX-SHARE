@@ -24,7 +24,7 @@ cp LICENSE "$STAGE/LICENSE.txt"
 cp THIRD_PARTY.md PRIVACY.md "$STAGE/"
 ./scripts/collect-licenses.sh "$STAGE/licenses"
 cat > "$STAGE/Read me first.txt" <<'EOF'
-LYNX SHARE for macOS (Apple Silicon and Intel, macOS 11 or newer)
+LYNX SHARE for macOS (Apple Silicon and Intel, macOS 10.15 Catalina or newer)
 
 1. Drag LYNX SHARE into the Applications folder.
 2. LYNX SHARE is free software from an independent developer without an Apple Developer ID, so it is not notarized by
@@ -40,7 +40,7 @@ Source code, checksums and help: https://github.com/Ka1-S/LYNX-SHARE
 
 ---
 
-LYNX SHARE para macOS (Apple Silicon e Intel, macOS 11 ou mais novo)
+LYNX SHARE para macOS (Apple Silicon e Intel, macOS 10.15 Catalina ou mais novo)
 
 1. Arraste o LYNX SHARE para a pasta Aplicativos.
 2. O LYNX SHARE é software livre de um desenvolvedor independente sem Apple Developer ID, por isso não é notarizado pela

@@ -1,0 +1,84 @@
+# Blix409 fork: macOS universal build (Intel + Apple silicon) that runs on macOS 10.15 Catalina and newer.
+# Same steps as release.yml's "macos" job, without the Windows / Linux jobs or publishing a release.
+# Runs on every push to the catalina branch, or by hand from the Actions tab (Run workflow).
+# The .dmg is attached to the run as an artifact (Actions › the run › Artifacts).
+name: Catalina macOS build
+
+on:
+  push:
+    branches: [catalina]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: catalina-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  JUCE_VERSION: 8.0.4
+  JUCE_SHA256: 0effe9823a6fd8a4f98e5c08be7d308350e417b2d15dcf34011e778fefbbf005
+  MIN_MACOS: '10.15'
+
+jobs:
+  macos:
+    name: macOS universal (10.15+)
+    runs-on: macos-15
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Label
+        run: |
+          ver=$(sed -n 's/^project *( *LYNX *VERSION *\([0-9.]*\).*/\1/p' CMakeLists.txt | head -1)
+          echo "LABEL=${ver:-dev}-catalina-$(git rev-parse --short HEAD)" >> "$GITHUB_ENV"
+
+      - name: Build dependencies
+        run: brew list ninja > /dev/null 2>&1 || brew install ninja
+
+      - name: JUCE (checksum verified)
+        run: |
+          curl -fsSL -o juce.tar.gz "https://github.com/juce-framework/JUCE/archive/refs/tags/$JUCE_VERSION.tar.gz"
+          echo "$JUCE_SHA256  juce.tar.gz" | shasum -a 256 -c -
+          mkdir -p "$RUNNER_TEMP/juce" && tar xzf juce.tar.gz -C "$RUNNER_TEMP/juce" --strip-components 1 && rm juce.tar.gz
+
+      - name: Build (universal, macOS ${{ env.MIN_MACOS }}+)
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DFETCHCONTENT_SOURCE_DIR_JUCE="$RUNNER_TEMP/juce" \
+            -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET="$MIN_MACOS"
+          cmake --build build --target LYNX -- -k 0
+          lipo -info build/LYNX_artefacts/Release/LYNX.app/Contents/MacOS/LYNX
+
+      - name: Check the minimum macOS version
+        run: |
+          app=build/LYNX_artefacts/Release/LYNX.app
+          bin=$app/Contents/MacOS/LYNX
+          plist=$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$app/Contents/Info.plist")
+          echo "Info.plist LSMinimumSystemVersion: $plist"
+          test "$plist" = "$MIN_MACOS"
+          for arch in x86_64 arm64; do
+            echo "== $arch"; otool -arch "$arch" -l "$bin" | grep -A4 LC_BUILD_VERSION | grep -E 'minos|sdk'
+          done
+          # Intel slice must say minos 10.15 (Apple silicon slices are always 11.0: no arm64 Mac runs 10.15)
+          otool -arch x86_64 -l "$bin" | grep -A4 LC_BUILD_VERSION | grep -q "minos $MIN_MACOS"
+          echo "== libraries the app needs:"; otool -arch x86_64 -L "$bin"
+
+      - name: Self-test and demo project
+        run: |
+          bin=build/LYNX_artefacts/Release/LYNX.app/Contents/MacOS/LYNX
+          "$bin" --selftest "$PWD/selftest.txt" "$PWD/selftest-demo.lynx" || true
+          cat selftest.txt
+          grep -q '^result=OK' selftest.txt
+          "$bin" --showcase "$PWD/Demo.lynx" || true
+          test -s Demo.lynx
+
+      - name: Package
+        run: ./scripts/package-macos.sh build/LYNX_artefacts/Release/LYNX.app "$LABEL" dist Demo.lynx
+
+      - name: Upload package
+        uses: actions/upload-artifact@v7
+        with:
+          name: LYNX-${{ env.LABEL }}-macos-universal
+          path: dist/*
+          if-no-files-found: error
