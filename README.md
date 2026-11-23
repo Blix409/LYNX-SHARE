@@ -1,3 +1,4 @@
+<h1>This is a fork only to make Lynx-Share available on macOS Catalina</h1><p>Nothing else was modified</p>
 <p align="center">
   <img src="docs/img/logo.png" alt="LYNX SHARE logo" width="128" height="128">
 </p>
